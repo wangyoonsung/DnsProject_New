@@ -4,9 +4,12 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.dnsproject.adapter.ExerAdapter
 import com.example.dnsproject.config.*
 import com.example.dnsproject.config.HTWDConfigLoader
 import com.example.dnsproject.engine.AsrManager
@@ -26,6 +29,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.asr_button
 import kotlinx.android.synthetic.main.activity_main.htwd_button
 import kotlinx.android.synthetic.main.activity_make_routine.*
+import kotlinx.android.synthetic.main.activity_manage_routine.*
 import java.io.*
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
@@ -36,6 +40,7 @@ class MainActivity : AppCompatActivity() , AsrManager.UpdateResultListener, Trig
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE, android.Manifest.permission.RECORD_AUDIO)
     private lateinit var userData: User
     private lateinit var routineList:ArrayList<Routine>
+    private lateinit var ikey:String
     /* engine */
     private var mEngineManager: AsrManager? = null
     private var mConfig: SpeechConfig? = null
@@ -44,15 +49,14 @@ class MainActivity : AppCompatActivity() , AsrManager.UpdateResultListener, Trig
     private var mModelLoader: TwdModelLoader? = null
     private var mTimeFull: Long = 0
     private val mTimeAsr: Long = 0
-    lateinit var key:String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         //아 배고파..
-        key = intent.getStringExtra("key").toString()
         if (intent.hasExtra("nameKey")) {
             userData = intent.getSerializableExtra("nameKey") as User
+            ikey= intent.getStringExtra("IKEY").toString()
             /* "nameKey"라는 이름의 key에 저장된 값이 있다면
                textView의 내용을 "nameKey" key에서 꺼내온 값으로 바꾼다 --????????????*/
             routineList =userData.routine
@@ -83,16 +87,23 @@ class MainActivity : AppCompatActivity() , AsrManager.UpdateResultListener, Trig
         RoutineButton.setOnClickListener {
             val nextIntent = Intent(this@MainActivity, ManageRoutineActivity::class.java)
             nextIntent.putExtra("nameKey", routineList)
-            startActivity(nextIntent)
+            nextIntent.putExtra("IKEY",ikey)
+            startActivityForResult(nextIntent,2)
         }
-
-        checkAsrResult("첫번째 루틴 실행해줘")//임의로 한거
-
 
 
     }
-
-
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(resultCode==0){
+            if(data!=null){
+                routineList= data.getSerializableExtra("addRoutine") as ArrayList<Routine>
+                Log.d("db",routineList.size.toString())
+            }else{
+                Log.d("db","null data")
+            }
+        }
+    }
 
     override fun onResume() {
         super.onResume()
@@ -321,7 +332,7 @@ class MainActivity : AppCompatActivity() , AsrManager.UpdateResultListener, Trig
 
                 intent.apply {
                     this.putExtra("routine", routineList[routineNum])
-                    this.putExtra("key", key)
+                    this.putExtra("IKEY", ikey)
                 }
 
                 startActivity(intent)
@@ -502,6 +513,7 @@ class MainActivity : AppCompatActivity() , AsrManager.UpdateResultListener, Trig
 //        mRadioButtonFile.setEnabled(enabled)
 //        mRadioButtonMic.setEnabled(enabled)
     }
+
 
 
 }
